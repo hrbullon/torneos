@@ -1,3 +1,21 @@
+body {
+  background-image: url(img/dash-bg-01.jpg);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-attachment: fixed;
+  padding-left: 50px;
+  padding-right: 50px;
+}
+
+@media only screen and (max-width: 600px) {
+  body {
+    width: 500px;
+  }
+
+}
+
+
 .App {
   text-align: center;
 }
@@ -36,3 +54,25 @@
     transform: rotate(360deg);
   }
 }
+
+.btn-action {
+  cursor: pointer;
+}
+
+.puntos_equipos{
+  width: 100px;
+}
+
+.marcador{
+  font-size: 40px;
+  margin: 10px;
+}
+
+.iniciado {
+  background: #90d4b2 !important;
+}
+
+.finalizado {
+  background: #eba9a9 !important;
+}
+
