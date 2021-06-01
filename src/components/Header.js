@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from "react-router-dom";
 import { useFirebaseApp } from 'reactfire';
 
 export default () => {
 
     const firebase = useFirebaseApp();
-    const [ torneo, setTorneo] = useState('');
-    const [ jornadaId, setJornadaId] = useState('');
-    const [ torneoId, setTorneoId] = useState('');
-
-    const [ fmenu, setFmenu] = useState('');
-    const [ smenu, setSmenu] = useState('');
-    const [ menu, setMenu] = useState('');
+    const torneoId = useParams().torneoId;
+    const jornadaId = useParams().jornadaId;
+    
+    var [torneoObjects, setTorneoObjects] = useState({});
     const [ isMobile, setIsMobile] = useState(false);
 
     const logOut = async() => {
@@ -19,54 +17,16 @@ export default () => {
         window.location = "/auth/login";
     }
 
-    const showMenu = (item) => {
-
-        if(item == "Menu"){
-            if(menu == "show"){
-                setMenu("hide");
-            }else{
-                setMenu("show");
-            }
-        }
-        
-        if(item == "fMenu"){
-            if(fmenu == "show"){
-                setFmenu("hide");
-            }else{
-                setFmenu("show");
-            }
-        }
-        
-        if(item == "sMenu"){
-            if(smenu == "show"){
-                setSmenu("hide");
-            }else{
-                setSmenu("show");
-            }
-        }
-
-        return false;
-    }
-
-    useEffect( async () => { 
+    useEffect( () => { 
 
         const roorRef = firebase.database().ref();
-        const torneo = roorRef.child("Torneo").orderByKey().limitToLast(1);
-        
-        await torneo.on('value', (snap) => {
-
+        const torneo = roorRef.child("Torneo").orderByKey().limitToLast(10);
+       
+        torneo.on('value', (snap) => {
             if(snap.exists()){
-
-                let item = snap.val();
-                Object.keys(item).map( row => {
-                    setLastTorneo(row);
-                    setTorneo(item[row]);
-                    if(item[row].Jornadas){
-                        setLastJornada(item[row].Jornadas);
-                    }
-                });
+                setItems(snap.val());
             }
-        })
+        });
 
         if( navigator.userAgent.match(/Android/i)
             || navigator.userAgent.match(/webOS/i)
@@ -80,16 +40,31 @@ export default () => {
         
     }, []);
 
-    const setLastTorneo = (key) => {
-        setTorneoId(key);
-        localStorage.setItem("torneo",key);
+    const setItems = (items) => {
+        setTorneoObjects(items);
     }
 
-    const setLastJornada = (items) => {
+    const getElementsLi = (torneo, items) => {
+        let item = "";
         Object.keys(items).map( key => {
-            setJornadaId(key);
-            localStorage.setItem("jornada",key);
-        });
+            item = <li class="nav-link dropdown-toggle"><a href={"/torneos/"+torneo+"/jornadas/"+key+"/partidos"}>Partidos</a></li>
+        })
+        return item;
+    }
+
+    const showTorneo = () => {
+        let split = window.location.href.split("/");
+        let torneo;
+
+        if(split.length > 6){
+            return (Object.keys(torneoObjects).map( (key) => {
+                if(key == split[4]){
+                    torneo = torneoObjects[key];
+                    let jornadaTxt = (torneoObjects[key].Jornadas[split[6]])? " - " + torneoObjects[key].Jornadas[split[6]].Descripcion : "";
+                    return torneo.Descripcion + jornadaTxt;
+                }
+            }));
+        }
     }
 
     return ( 
@@ -115,18 +90,25 @@ export default () => {
                                     <li class="nav-link dropdown-toggle">
                                         <a href="/torneos">Crear Nuevo Torneo</a>
                                     </li>
-                                    <li class="nav-link dropdown-toggle"><a>{torneo.Descripcion}</a>
-                                    <ul>
-                                            <li class="nav-link dropdown-toggle"><a href={"/torneos/"+torneoId+"/equipos"}>Equipos</a></li>
-                                            <li class="nav-link dropdown-toggle"><a href={"/torneos/"+torneoId+"/jornadas"}><span>Jornada</span></a>
-                                            { jornadaId &&
-                                                <ul>
-                                                    <li class="nav-link dropdown-toggle"><a href={"/torneos/"+torneoId+"/jornadas/"+jornadaId+"/partidos"}>Partidos</a></li>
-                                                </ul>
-                                            }
-                                            </li>
-                                            <li class="nav-link dropdown-toggle"><a href={"/torneos/"+torneoId+"/tabla-general"}>Tabla General</a></li>
-                                        </ul></li>
+                                        { Object.keys(torneoObjects).map( key => {
+                                            return (
+                                                
+                                                <li key={key} class="nav-link dropdown-toggle">
+                                                    <a>{ torneoObjects[key].Descripcion }</a>
+                                                    <ul>
+                                                        <li class="nav-link dropdown-toggle"><a href={"/torneos/"+key+"/equipos"}>Equipos</a></li>
+                                                        <li class="nav-link dropdown-toggle"><a href={"/torneos/"+key+"/jornadas"}><span>Jornada</span></a>
+                                                            {   torneoObjects[key].Jornadas &&
+                                                                <ul>
+                                                                { getElementsLi(key,torneoObjects[key].Jornadas) }
+                                                                </ul>
+                                                            }
+                                                        </li>   
+                                                        <li class="nav-link dropdown-toggle"><a href={"/torneos/"+key+"/tabla-general"}>Tabla General</a></li>
+                                                    </ul>
+                                                </li>
+                                            )
+                                        })}
                                     </ul></li>
                                 </ul>
                             <ul class="navbar-nav">
@@ -143,21 +125,15 @@ export default () => {
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <ul class="navbar-nav mx-auto">
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" onClick={(e) => showMenu("Menu")}>
-                                    Torneos
-                                </a>
-                                <div class={"dropdown-menu "+menu}  aria-labelledby="navbarDropdown">
-                                    <a class="dropdown-item" href="#">Crear Torneo</a>
-                                    <a onClick={(e) => showMenu("fMenu")} class="nav-link dropdown-toggle">{torneo.Descripcion}</a>
-                                    <div class={"dropdown-menu "+fmenu} aria-labelledby="navbarDropdown">
-                                        <a class="dropdown-item" href={"/torneos/"+torneoId+"/equipos"}>Equipos</a>
-                                        <a onClick={(e) => showMenu("sMenu")} class="nav-link dropdown-toggle">Jornadas</a>
-                                        <div class={"dropdown-menu "+smenu} aria-labelledby="navbarDropdown">
-                                            <a class="dropdown-item" href={"/torneos/"+torneoId+"/jornadas"}>Crear Jornada</a>
-                                            <a class="dropdown-item" href={"/torneos/"+torneoId+"/jornadas/"+jornadaId+"/partidos"}>Partidos</a>
-                                        </div>
-                                        <a class="dropdown-item" href={"/torneos/"+torneoId+"/tabla-general"}>Tabla General</a>
-                                    </div>
+                                <div class={"dropdown-menu show"}  aria-labelledby="navbarDropdown">
+                                    <a class="dropdown-item" href="/torneos">Crear Torneo</a>
+                                    { Object.keys(torneoObjects).map( key => {
+                                            return (
+                                                <a href={"/torneos/"+key} class="nav-link">{torneoObjects[key].Descripcion}</a>
+                                            )
+                                        })      
+                                    }
+                                    
                                 </div>
                             </li>
                         </ul>
@@ -165,13 +141,20 @@ export default () => {
                             <li class="nav-item">
                                 <a onClick={logOut} class="nav-link d-flex">
                                     <i class="far fa-user mr-2 tm-logout-icon"></i>
-                                    <span>Logout</span>
+                                    <span>Cerrar Sesi&oacute;n</span>
                                 </a>
                             </li>
                         </ul>
                     </div>}
                 </nav>
             </div>
-        </div>
+            {   !/home/.test(window.location.href) &&
+                <div class="col-12 justify-content-center">
+                    <div class="bg-white mt-4 p-4 text-center">
+                        <h4>{ showTorneo()}</h4>
+                    </div>    
+                </div>                        
+            }   
+        </div> 
     );
 }

@@ -10,10 +10,10 @@ export default () => {
                 <div class="bg-white tm-block">
                     <div class="row">
                         <div class="col-12">
-                            <ul>
-                                <li><a href={"/torneos/"+torneoId+"/equipos"}>Equipos</a></li>    
-                                <li><a href={"/torneos/"+torneoId+"/jornadas"}>Jornadas</a></li>    
-                                <li><a>Tabla General</a></li>    
+                            <ul class="text-center">
+                                <li><a href={"/torneos/"+torneoId+"/equipos"} class="btn btn-primary w-100">Equipos</a></li>    
+                                <li><a href={"/torneos/"+torneoId+"/jornadas"} class="btn btn-primary w-100">Jornadas</a></li>    
+                                <li><a href={"/torneos/"+torneoId+"/tabla-general"} class="btn btn-primary w-100">Tabla General</a></li>    
                             </ul>
                         </div>
                     </div>

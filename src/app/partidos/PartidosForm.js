@@ -5,7 +5,6 @@ import Option from '../../components/Option';
 
 export default () =>  {
 
-    document.body.style = 'background-image: url("/images/dash-bg-03.jpg");';
     
     const torneoId = useParams().torneoId;
     const jornadaId = useParams().jornadaId;
@@ -16,7 +15,10 @@ export default () =>  {
     var [equipoObjects, setEquipoObjects] = useState({});
     
     const [ message, setMessage ] = useState('');
+    const [ messageLoading, setMessageLoading ] = useState('');
     const [ error, setError ] = useState('');
+
+    const [ partidoObjeto, setPartidoObjecto ] = useState();
 
     const [ Jornada, setJornada] = useState('');
     const [ Nombre, setNombre] = useState('');
@@ -48,6 +50,7 @@ export default () =>  {
     useEffect( () => {
 
         if(partidoId){
+            setMessageLoading("Cargando datos...");
             loadData();
         }
 
@@ -69,33 +72,42 @@ export default () =>  {
             if(Local == Visitante){
                 setError("El equipo local y visitante no pueden ser los mismos");
             }else{
-                if(!partidoId){
-                    await firebase.database().ref(path).push({
-                        Jornada:jornadaId,
-                        Nombre,Local,Visitante,Estadio,Fecha,Hora,
-                        Punto_Local:0,Punto_Visitante:0,Estado:0,
-                        Goles_Local:0,Goles_Visitante:0,
-                        Ganador:0,Perdedor:0
-                    }).then( () => {
-                        partidoSaved();
-                    }).catch(e => {
-                        setError(e.message);
-                    });
+
+                let unique = partidosUnicos(Local,Visitante,Fecha);
+
+                if(unique){
+                    if(!partidoId){
+                        await firebase.database().ref(path).push({
+                            Jornada:jornadaId,
+                            Nombre,Local,Visitante,Estadio,Fecha,Hora,
+                            Punto_Local:0,Punto_Visitante:0,Estado:0,
+                            Goles_Local:0,Goles_Visitante:0,
+                            Ganador:0,Perdedor:0
+                        }).then( () => {
+                            partidoSaved();
+                        }).catch(e => {
+                            setError(e.message);
+                        });
+                    }else{
+                        await firebase.database().ref(path+"/"+partidoId).set({
+                            ...partidoObjeto,
+                            Jornada,
+                            Nombre,Local,Visitante,Estadio,Fecha,Hora,
+                            Punto_Local: parseInt(Punto_Local),
+                            Punto_Visitante: parseInt(Punto_Visitante),
+                            Estado,
+                            Goles_Local: parseInt(Goles_Local),
+                            Goles_Visitante: parseInt(Goles_Visitante),
+                            Ganador,Perdedor
+                        }).then( () => {
+                            partidoSaved();
+                        }).catch(e => {
+                            setError(e.message);
+                        });
+                    }
                 }else{
-                    await firebase.database().ref(path+"/"+partidoId).set({
-                        Jornada,
-                        Nombre,Local,Visitante,Estadio,Fecha,Hora,
-                        Punto_Local: parseInt(Punto_Local),
-                        Punto_Visitante: parseInt(Punto_Visitante),
-                        Estado,
-                        Goles_Local: parseInt(Goles_Local),
-                        Goles_Visitante: parseInt(Goles_Visitante),
-                        Ganador,Perdedor
-                    }).then( () => {
-                        partidoSaved();
-                    }).catch(e => {
-                        setError(e.message);
-                    });
+                    document.getElementsByName("Local")
+                    setError("No se puede registrar un mismo equipo en varios partidos de la misma fecha");
                 }
             }    
         }else{
@@ -112,9 +124,13 @@ export default () =>  {
             setError("");
             setNombre("");
             setLocal("");
-            setPunto_Local("");
+            setPunto_Local(0);
+            setGolesLocal(0);
             setVisitante("");
-            setPunto_Visitante("");
+            setPunto_Visitante(0);
+            setGolesVisitante(0);
+            setGanador("");
+            setPerdedor("");
             setEstadio("");
             setFecha("");
             setHora("");
@@ -125,6 +141,32 @@ export default () =>  {
         }, 3000);
     }
 
+    const partidosUnicos = (local, visitante, fecha) => {
+        
+        let partidosRef = firebase.database().ref(path);
+        let flag = true;
+
+        partidosRef.orderByChild("Jornada").equalTo(jornadaId)
+        .on("value", (snap) => {
+            if(snap.exists()){
+                let items = snap.val();
+                if(partidoId == undefined){
+                    Object.keys(items).map( (key) => {
+                        if( ( (items[key].Local == local || 
+                            items[key].Visitante == local ) &&
+                            items[key].Fecha == fecha) || ( (items[key].Local == visitante || 
+                                items[key].Visitante == visitante ) &&
+                                items[key].Fecha == fecha)){
+                            flag = false;
+                        }
+                    });
+                }
+            }
+        });
+        console.log(flag);
+        return flag;
+    }
+
 
 
     const loadData = async () => {
@@ -132,6 +174,9 @@ export default () =>  {
         await firebase.database().ref(path+"/"+partidoId)
         .get().then((snap) => {
             if(snap.exists()){
+
+                setPartidoObjecto(snap.val());
+
                 setJornada(snap.val().Jornada);
                 setNombre(snap.val().Nombre);
                 setEstadio(snap.val().Estadio);
@@ -144,11 +189,15 @@ export default () =>  {
                 setGolesVisitante(parseInt(snap.val().Goles_Visitante));
                 setFecha(snap.val().Fecha);
                 setHora(snap.val().Hora);
+
+                setMessageLoading("");
+
             }else{
                 alert("Error al obtener los datos");
             }
         }).catch((err) => {
             console.log(err);
+            setMessageLoading("Error al cargar la data, verifique su conexión");
         });
 
     }
@@ -164,20 +213,25 @@ export default () =>  {
                     <div class="bg-white mt-4 mb-4 p-2">
                         <div class="row">
                             <div class="col-xl-3">
-                                <h2 class="tm-block-title pt-4 pl-4 pb-0">CREAR PARTIDO</h2>
+                                <h2 class="tm-block-title pt-4 pl-4 pb-0">CREAR/EDITAR PARTIDO</h2>
                             </div>
                             <div class="col-xl-6">
+                            { messageLoading !== "" &&
+                                    <div class="alert alert-warning pt-3 mt-3 text-center">
+                                        { messageLoading }
+                                    </div>
+                            }
                             { message !== "" &&
                                     <div class="alert alert-success pt-3 mt-3 text-center">
                                         { message }
                                     </div>
-                                }
-                                {  
-                                    error !=="" &&
-                                    <div class="alert alert-danger pt-3 mt-3 text-center">
-                                        { error }
-                                    </div>
-                                }
+                            }
+                            {  
+                                error !=="" &&
+                                <div class="alert alert-danger pt-3 mt-3 text-center">
+                                    { error }
+                                </div>
+                            }
                             </div>
                             <div class="col-xl-3 pt-3">
                                 <a onClick={savePartido} class="btn btn-primary">GUARDAR</a>

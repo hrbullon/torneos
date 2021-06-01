@@ -23,8 +23,6 @@ export default () => {
     const [ error, setError ] = useState('');
     const path = "Torneo/" + torneoId + "/Equipos";
 
-    document.body.style = 'background-image: url("/images/dash-bg-03.jpg");';
-
     useEffect( () => {
 
         setMessages("Cargando data...");
@@ -32,11 +30,12 @@ export default () => {
         document.getElementById("inputImage").style.display = "none";
         
         firebase.database().ref().child(path)
-            .on('value', snapshot => {
-                if (snapshot.exists()) {
+            .on('value', snap => {
+                if (snap.exists()) {
                     setMessages("");
-                    setItems(snapshot.val());
+                    setItems(snap.val());
                 } else {
+                    setItems({});
                     setMessages("No hay datos para mostrar");
                 }
             });

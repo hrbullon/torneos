@@ -9,6 +9,7 @@ import Jornadas from "../app/jornadas/Jornadas";
 import Partidos from "../app/partidos/Partidos";
 import TablaGeneral from "../app/resultados/TablaGeneral";
 import PartidosForm from "../app/partidos/PartidosForm";
+import Partido from "../app/partidos/Partido";
   
 export const MainRouter = () => {
     return (
@@ -25,6 +26,7 @@ export const MainRouter = () => {
             <Route exact path="/torneos/:torneoId/jornadas/:jornadaId/partidos" component={Partidos} />
             <Route exact path="/torneos/:torneoId/jornadas/:jornadaId/partidos/create" component={PartidosForm} />
             <Route exact path="/torneos/:torneoId/jornadas/:jornadaId/partidos/:partidoId" component={PartidosForm} />
+            <Route exact path="/torneos/:torneoId/jornadas/:jornadaId/partidos/:partidoId/show" component={Partido} />
             <Redirect to="/home"/>
           </Switch>
       </Router>

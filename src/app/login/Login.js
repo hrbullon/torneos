@@ -10,6 +10,8 @@ export default () => {
     const [ errorLogged, setErrorLogged ] = useState('');
     const user = useUser();
 
+    document.body.style = 'background-image: url("/images/dash-bg-01.jpg")';
+
     const firebase = useFirebaseApp();
 
     if(user.data){
@@ -19,13 +21,21 @@ export default () => {
     const signIn = async () => {
         await firebase.auth().createUserWithEmailAndPassword(email, password)
         .then( result => {
+            
             setMessage("Registro de usuario satisfactorio");
+            localStorage.setItem("logged",true);
             setTimeout(() => {
                 window.location = "/home";
             }, 3000);
         })
         .catch( e => {
-            console.log(e.message);
+            if(/email/.test(e.message)){
+                setErrorLogged("El formato del correo no es válido");
+            }
+            
+            if(/password/.test(e.message)){
+                setErrorLogged("La contraseña debe tener al menos 6 caracteres");
+            }
         });
         
     }
@@ -43,11 +53,11 @@ export default () => {
                 }, 3000);
             })
             .catch( e => {
-                setErrorLogged("El usuario o contraseña son incorrectos");
+                setErrorLogged("El correo o contraseña son incorrectos");
             });
 
         } else {
-            setErrorLogged("El usuario y la contraseña son requeridos");
+            setErrorLogged("El correo y la contraseña son requeridos");
         }
 
     }

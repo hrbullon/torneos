@@ -19,8 +19,6 @@ export default () => {
     const firebase = useFirebaseApp();
     const path = 'Torneo/'+torneoId+'/Jornadas';
 
-    document.body.style = 'background-image: url("/images/dash-bg-03.jpg");';
-
     useEffect( () => {
         
         setMessages("Cargando datos...");
@@ -31,6 +29,7 @@ export default () => {
                 setMessages("");
                 setItems(snap.val());
             }else{
+                setItems({});
                 setMessages("No hay datos para mostrar");
             }
         });
@@ -192,7 +191,7 @@ export default () => {
                         <tbody>
                             { Object.keys(jornadaObjects).map( (index, value) => {
                                 return (<tr key={index}>
-                                    <td>{jornadaObjects[index].Descripcion}</td>
+                                    <td><a href={"/torneos/"+torneoId+"/jornadas/"+index+"/partidos"}>{jornadaObjects[index].Descripcion}</a></td>
                                     <td class="text-right">
                                         <i onClick={(e) => editJornada(index)} class="fa fa-edit mr-3 btn-action"></i>
                                         <i onClick={(e) => deleteJornada(index)} class="fa fa-trash btn-action"></i>

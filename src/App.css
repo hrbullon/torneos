@@ -1,5 +1,6 @@
 body {
-  background-image: url(img/dash-bg-01.jpg);
+  background-color:#d3d3d354;
+  /*background-image: url(img/dash-bg-01.jpg);*/
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center;
@@ -76,3 +77,31 @@ body {
   background: #eba9a9 !important;
 }
 
+.cronometro {
+  font-weight: 700;
+  font-size: 40px;
+}
+
+@media only screen and (max-width: 768px) {
+  #partido {
+    font-size: 20px;
+  }
+}
+
+@media only screen and (min-width: 768px) {
+  #partido {
+    font-size: 30px;
+  }
+}
+
+#home-partidos tbody tr {
+  cursor: pointer;
+}
+
+.w-100 {
+  width: 100%;
+}
+
+.torneo-item {
+  cursor: pointer;
+}

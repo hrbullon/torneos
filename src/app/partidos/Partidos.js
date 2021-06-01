@@ -2,11 +2,10 @@
 import React, { useState, useEffect } from 'react'
 import { useParams } from "react-router-dom";
 import { useFirebaseApp } from 'reactfire';
+import Countdown from 'react-countdown';
 
 export default () => {
 
-    document.body.style = 'background-image: url("/images/dash-bg-03.jpg");';
-    
     const torneoId = useParams().torneoId;
     const jornadaId = useParams().jornadaId;
 
@@ -39,12 +38,12 @@ export default () => {
             if(snap.exists()){
                 setMessages("");
                 setItems(2,snap.val());
+
             }else{
                 setItems(2,"");
                 setMessages("No hay datos para mostrar");
             }
         });
-
 
         partidosRef.orderByChild("Jornada").equalTo(jornadaId).on('child_changed', snap => {});
 
@@ -52,11 +51,58 @@ export default () => {
 
     const changeEstado = async (type,key) => {
 
-        let msg = (type == 1)? "Desea iniciar partido?" : "Desea finalizar partido?";
+        let msg = "";
+
+        switch (type) {
+            case 1:
+                msg = "Desea iniciar partido?"
+                break;
+            case 2:
+                msg = "Desea finalizar primer tiempo";
+                break;
+            case 3:
+                msg = "Desea iniciar segundo tiempo";
+                break;
+            case 4:
+                msg = "Desea finalizar partido?";
+                break;
+
+        }
 
         if (window.confirm(msg)) {
 
-            if(type == 2){
+            let flag = true;
+            if(flag && type == 1){
+
+                await firebase.database().ref(path+"/"+key).set({
+                    ...partidoObjects[key],Estado:type,Inicio:new Date().toString()
+                }).then( () => {
+                }).catch(e => {
+                    console.log(e.message);
+                });
+            }
+
+            if(flag && type == 2){
+
+                await firebase.database().ref(path+"/"+key).set({
+                    ...partidoObjects[key],Estado:type,Mitad:new Date().toString()
+                }).then( () => {
+                }).catch(e => {
+                    console.log(e.message);
+                });
+            }
+
+            if(flag && type == 3){
+
+                await firebase.database().ref(path+"/"+key).set({
+                    ...partidoObjects[key],Estado:type,Segundo:new Date().toString()
+                }).then( () => {
+                }).catch(e => {
+                    console.log(e.message);
+                });
+            }
+            
+            if(flag && type == 4){
                 if(partidoObjects[key].Goles_Local > partidoObjects[key].Goles_Visitante){
                     partidoObjects[key].Ganador = partidoObjects[key].Local;
                     partidoObjects[key].Perdedor = partidoObjects[key].Visitante;
@@ -73,14 +119,17 @@ export default () => {
                     partidoObjects[key].Punto_Local = 1;
                     partidoObjects[key].Punto_Visitante = 1;
                 }
-            }
 
-            await firebase.database().ref(path+"/"+key).set({
-                ...partidoObjects[key],Estado:type
-            }).then( () => {
-            }).catch(e => {
-                console.log(e.message);
-            });
+                let fin = new Date();
+                let time = getTime(partidoObjects[key].Segundo, fin);
+                
+                await firebase.database().ref(path+"/"+key).set({
+                    ...partidoObjects[key],Estado:type,Fin:fin.toString(), EndTime:time 
+                }).then( () => {
+                }).catch(e => {
+                    console.log(e.message);
+                });
+            }
         }
     }
 
@@ -99,17 +148,38 @@ export default () => {
     }
 
     const setItems = (type,items) => {
-        if(type == 1){
-            setEquipoObjects(items);
-        }else{
-            setPartidoObjects(items);
+        
+        switch (type) {
+            
+            case 1:
+                setEquipoObjects(items);
+                break;
+            case 2:
+                setPartidoObjects(items);
+                break;
         }
+    }
+
+    const getTime = (inicio, actual = false) => {
+        var timeActual = (actual)? actual : new Date();
+        var acumularTime = timeActual - new Date(inicio);;
+        var acumularTime2 = new Date();
+        acumularTime2.setTime(acumularTime); 
+        var cc = Math.round(acumularTime2.getMilliseconds()/10);
+        var ss = acumularTime2.getSeconds();
+        var mm = acumularTime2.getMinutes();
+        var hh = acumularTime2.getHours()-18;
+        if (cc < 10) {cc = "0"+cc;}
+        if (ss < 10) {ss = "0"+ss;} 
+        if (mm < 10) {mm = "0"+mm;}
+        if (hh < 10) {hh = "0"+hh;}
+
+        return  mm+" : "+ss;
     }
 
     return (
         <div class="row">
             <div class="col-xl-12 col-lg-12">
-                
                 <div class="bg-white mt-4 p-2">
                     <div class="row">
                         <div class="col-xl-10">
@@ -133,6 +203,7 @@ export default () => {
             {
 
                 Object.keys(partidoObjects).map( (index, value) => {
+                    let flag = (partidoObjects[index].Estado == 4)? true : false;
                     return (
                         <div class="col-xl-3 col-lg-12 mt-4">
                             <div key={index} class="bg-white partidos tm-block text-center">
@@ -142,6 +213,16 @@ export default () => {
                                     </div>
                                 }
                                 { partidoObjects[index].Estado == 2 &&
+                                    <div class="alert alert-info">
+                                        FINAL PRIMER TIEMPO
+                                    </div>
+                                }
+                                { partidoObjects[index].Estado == 3 &&
+                                    <div class="alert alert-info">
+                                        SEGUNDO TIEMPO INICIADO
+                                    </div>
+                                }
+                                { partidoObjects[index].Estado == 4 &&
                                     <div class="alert alert-danger">
                                         PARTIDO FINALIZADO
                                     </div>
@@ -157,6 +238,41 @@ export default () => {
                                     </span>
                                 </div>
                                 }
+                                <div class="cronometro">
+                                
+                                { (partidoObjects[index].Estado == 1) && 
+                                    <Countdown
+                                        date={Date.now() + 10000000000}
+                                        intervalDelay={0}
+                                        precision={3}
+                                        total={0}
+                                        hours={0}
+                                        minutes={0}
+                                        seconds={0}
+                                        milliseconds={0}
+                                        renderer={props => <div>{ getTime(partidoObjects[index].Inicio) }</div>}
+                                        />
+                                }
+                                { (partidoObjects[index].Estado == 3) && 
+                                    <Countdown
+                                        date={Date.now() + 10000000000}
+                                        intervalDelay={0}
+                                        precision={3}
+                                        total={0}
+                                        hours={0}
+                                        minutes={0}
+                                        seconds={0}
+                                        milliseconds={0}
+                                        renderer={props => <div>{ getTime(partidoObjects[index].Segundo) }</div>}
+                                        />
+                                }
+                                { partidoObjects[index].Estado == 4 &&
+                                    partidoObjects[index].EndTime
+                                }
+                                { partidoObjects[index].Estado == 2 &&
+                                    <span>45:00</span>
+                                }
+                                </div>
                                 <ul>
                                     <li>
                                         { partidoObjects[index].Nombre+" " } 
@@ -183,12 +299,19 @@ export default () => {
                                     <button onClick={(e) => changeEstado(1,index)} class="btn btn-sm btn-primary">INICIAR</button>
                                 }
                                 { partidoObjects[index].Estado == 1 &&
-                                    <button onClick={(e) => changeEstado(2,index)} class="btn btn-sm btn-primary">TERMINAR</button>
+                                    <button onClick={(e) => changeEstado(2,index)} class="btn btn-sm btn-primary">F. 1ER TIEMPO</button>
+                                }
+                                { partidoObjects[index].Estado == 2 &&
+                                    <button onClick={(e) => changeEstado(3,index)} class="btn btn-sm btn-primary">INICIAR 2DO TIEMPO</button>
+                                }
+                                { partidoObjects[index].Estado == 3 &&
+                                    <button onClick={(e) => changeEstado(4,index)} class="btn btn-sm btn-primary">FINALIZAR</button>
                                 }
                                 <a href={"/torneos/"+torneoId+"/jornadas/"+jornadaId+"/partidos/"+index} class="btn btn-sm btn-primary">EDITAR</a>
                                 <a onClick={(e) => deletePartido(index)} class="btn btn-primary">ELIMINAR</a>
                             </div>
-                        </div>
+                        </div> 
+                       
                     )    
                 })
             }   

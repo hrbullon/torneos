@@ -1,7 +1,6 @@
 import React, { Component, useState, useEffect } from 'react'
 import 'firebase/database';
 import { useFirebaseApp } from 'reactfire';
-import List from '../../components/List';
 
 export default () => {
 
@@ -28,6 +27,7 @@ export default () => {
                 setMessages("");
                 setItems(snap.val());
             }else{
+                setItems({});
                 setMessages("No hay datos para mostrar");
             }
         });
